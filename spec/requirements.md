@@ -199,25 +199,38 @@ the slug format myself.
 (`~/.local/bin`), so that adding this tool doesn't require another
 per-tool, per-clone `PATH` entry.
 
-- **9.1** WHEN the user runs `scripts/install-shim.ps1` THEN the system
-  SHALL create `~/.local/bin` if it does not already exist.
-- **9.2** WHEN `scripts/install-shim.ps1` runs THEN the system SHALL
-  write `claude-export.cmd` and `claude-export` into `~/.local/bin`,
-  each invoking `py -3 <absolute path to this clone's cli.py>` with the
-  caller's arguments forwarded unchanged.
-- **9.3** WHEN `scripts/install-shim.ps1` is re-run THEN the system SHALL
+- **9.1** WHEN the user runs the platform's install-shim script
+  (`scripts/install-shim.ps1` on Windows, `scripts/install-shim.sh` on
+  macOS/Linux) THEN the system SHALL create `~/.local/bin` if it does
+  not already exist.
+- **9.2** WHEN the install-shim script runs THEN the system SHALL write
+  a `claude-export` shim into `~/.local/bin` that invokes this clone's
+  `cli.py` via that platform's Python launcher (`py -3` on Windows,
+  `python3` on macOS/Linux) with the caller's arguments forwarded
+  unchanged.
+- **9.3** WHERE the platform is Windows, THE install-shim script SHALL
+  additionally write a `claude-export.cmd` shim (for cmd.exe/PowerShell)
+  invoking `cli.py` the same way.
+- **9.4** WHEN the install-shim script is re-run THEN the system SHALL
   overwrite any existing shim files at that location rather than
   failing.
-- **9.4** WHEN a Git for Windows `bash.exe` is found THEN the installer
-  SHALL mark the POSIX (`claude-export`) shim executable via `chmod +x`.
-- **9.5** IF no usable `bash.exe` is found THEN the installer SHALL warn
-  the user to set the executable bit manually rather than failing.
-- **9.6** IF `~/.local/bin` is not already present in the user's `PATH`
-  THEN the installer SHALL warn the user and print the exact command to
-  add it, and SHALL NOT modify `PATH` itself.
-- **9.7** THE installer SHALL NOT be required for the CLI to function:
-  `py -3 cli.py <args>` SHALL remain fully usable whether or not the
-  installer has been run.
+- **9.5** WHERE the platform is Windows: WHEN a Git for Windows
+  `bash.exe` is found THEN the installer SHALL mark the POSIX
+  (`claude-export`) shim executable via `chmod +x`; IF no usable
+  `bash.exe` is found THEN it SHALL warn the user to set the executable
+  bit manually rather than failing.
+- **9.6** WHERE the platform is macOS/Linux, THE install-shim script
+  SHALL mark the `claude-export` shim executable directly via
+  `chmod +x`, since the script itself already runs under a POSIX shell
+  and needs no separate shell lookup to do so.
+- **9.7** IF `~/.local/bin` is not already present in the user's `PATH`
+  THEN the installer SHALL warn the user and print the exact line to
+  add it for their platform (a `PATH` environment-variable command on
+  Windows, an `export PATH=...` line on macOS/Linux), and SHALL NOT
+  modify `PATH` itself.
+- **9.8** THE installer SHALL NOT be required for the CLI to function:
+  invoking `cli.py` directly via the platform's Python launcher SHALL
+  remain fully usable whether or not the installer has been run.
 
 ## 10. Install and register the MCP server with a single script
 
@@ -226,15 +239,18 @@ server's dependency and registers it with Claude Code, so that I don't
 have to manually find my Python path and hand-assemble a `claude mcp
 add` command.
 
-- **10.1** WHEN the user runs `scripts/install-mcp-server.ps1` THEN the
-  system SHALL resolve the absolute path of the `python.exe` that
-  `py -3` would invoke.
-- **10.2** IF that resolution fails (no working `py -3`) THEN the
-  installer SHALL raise an error rather than proceeding with a guessed
-  path.
-- **10.3** WHEN the Python path is resolved THEN the installer SHALL
-  install this project's dependencies (`requirements.txt`) using that
-  same interpreter.
+- **10.1** WHEN the user runs the platform's install-mcp-server script
+  (`scripts/install-mcp-server.ps1` on Windows,
+  `scripts/install-mcp-server.sh` on macOS/Linux) THEN the system SHALL
+  resolve the absolute path of the Python interpreter that the
+  platform's launcher would invoke (`py -3` on Windows, `python3` on
+  macOS/Linux).
+- **10.2** IF that resolution fails (no working platform launcher) THEN
+  the installer SHALL raise an error rather than proceeding with a
+  guessed path.
+- **10.3** WHEN the interpreter path is resolved THEN the installer
+  SHALL install this project's dependencies (`requirements.txt`) using
+  that same interpreter.
 - **10.4** IF the `claude` CLI is not found on `PATH` THEN the installer
   SHALL raise an error rather than proceeding.
 - **10.5** IF an MCP server is already registered under the name
@@ -243,7 +259,8 @@ add` command.
   updates stale paths instead of failing with "already exists".
 - **10.6** WHEN registration succeeds THEN the installer SHALL register
   the server at user scope (available in every project) with an
-  absolute path to both `python.exe` and this clone's `mcp_server.py`.
+  absolute path to both the Python interpreter and this clone's
+  `mcp_server.py`.
 - **10.7** WHEN the installer finishes THEN it SHALL print the
   registration's current state (equivalent to `claude mcp get
   claude-session-export`) so the user can confirm success without
@@ -251,3 +268,8 @@ add` command.
 - **10.8** IF any step fails (dependency install or registration) THEN
   the installer SHALL stop and surface that step's actual error output
   rather than continuing or swallowing it.
+- **10.9** WHERE the platform is macOS/Linux, IF `pip install` fails
+  THEN the installer SHALL additionally suggest retrying with
+  `--user` or with a virtualenv interpreter, since an unscoped
+  `pip install` is commonly refused ("externally managed environment")
+  on Debian/Ubuntu and Homebrew Python installs.

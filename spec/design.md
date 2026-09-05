@@ -95,24 +95,33 @@ interface-specific logic is the top-level `try/except` in `main()`, which
 catches the core library's exceptions, prints `error: <message>` to
 stderr, and exits `1` — everything else is a direct call-through.
 
-## Optional installer (`scripts/install-shim.ps1`)
+## Optional installer (`scripts/install-shim.ps1` / `.sh`)
 
 `claude-export` is not a third interface onto `core.py` — it's a thin
 invocation wrapper around the CLI itself, so `claude-export <args>` is
-exactly `py -3 cli.py <args>` with no behavioral difference. The
-installer writes two shim files (`claude-export.cmd`,
-`claude-export`) into `~/.local/bin` rather than adding this repo's own
-directory to `PATH`, on the premise that `~/.local/bin` is a directory
-already on `PATH` in many dev setups — one shared bin directory reused by
-every tool beats one `PATH` entry per tool/clone. This means, unlike a
-shim shipped inside the repo, the installed files hardcode this clone's
-absolute `cli.py` path and must be re-run if the repo moves; the
-installer is idempotent (safe to re-run) specifically to make that cheap.
-It also never edits `PATH` itself — if `~/.local/bin` isn't already
-present, it prints the exact command for the user to run instead of
-mutating a machine-wide setting on their behalf. See `tech.md` for why
-the shims invoke `py -3` while the MCP registration instead uses an
-absolute `python.exe` path.
+exactly `<python> cli.py <args>` with no behavioral difference. The
+installer writes shim file(s) into `~/.local/bin` rather than adding
+this repo's own directory to `PATH`, on the premise that `~/.local/bin`
+is a directory already on `PATH` in many dev setups — one shared bin
+directory reused by every tool beats one `PATH` entry per tool/clone.
+This means, unlike a shim shipped inside the repo, the installed files
+hardcode this clone's absolute `cli.py` path and must be re-run if the
+repo moves; the installer is idempotent (safe to re-run) specifically to
+make that cheap. It also never edits `PATH` itself — if `~/.local/bin`
+isn't already present, it prints the exact line for the user to add to
+their shell config instead of mutating a machine-wide setting on their
+behalf.
+
+There are two implementations of this same design, one per platform
+family: `install-shim.ps1` (Windows) writes `claude-export.cmd` plus a
+POSIX `claude-export` (for Git Bash) and invokes `cli.py` via `py -3`;
+`install-shim.sh` (macOS/Linux) writes just `claude-export` and invokes
+`cli.py` via `python3`. Both resolve their own repo root the same way —
+relative to the installer script's own location (`$PSScriptRoot` /
+`BASH_SOURCE`) — so either one works correctly regardless of where the
+repo is cloned. See `tech.md` for why the shims invoke the `py`/`python3`
+launcher while the MCP registration instead uses an absolute
+interpreter path.
 
 ## MCP server (`mcp_server.py`)
 
@@ -139,19 +148,31 @@ Python exception from a tool function (an MCP tool-call error result) —
 there is no bespoke error handling in this layer, mirroring the "let
 `core.py`'s exceptions speak for themselves" approach used in the CLI.
 
-### Registration installer (`scripts/install-mcp-server.ps1`)
+### Registration installer (`scripts/install-mcp-server.ps1` / `.sh`)
 
-Registering an MCP server with Claude Code (find the right `python.exe`,
+Registering an MCP server with Claude Code (find the right interpreter,
 install `mcp` for it, run `claude mcp add --scope user` with both
 absolute paths) is several manual, error-prone steps — get the Python
-path wrong and `claude mcp list` just shows a silent failure. This
-script automates exactly those steps and nothing else: it does not
-touch `core.py`, `cli.py`, or `mcp_server.py`, and it treats the
-`claude` CLI as the source of truth for registration state rather than
-editing `~/.claude.json` directly. Because `claude mcp add` errors on a
-name that's already registered, the script first checks with
-`claude mcp get` and removes any existing registration, making a re-run
-(e.g. after moving the repo) update the registration instead of failing.
+path wrong and `claude mcp list` just shows a silent failure. These
+scripts automate exactly those steps and nothing else: neither touches
+`core.py`, `cli.py`, or `mcp_server.py`, and both treat the `claude` CLI
+as the source of truth for registration state rather than editing
+`~/.claude.json` directly. Because `claude mcp add` errors on a name
+that's already registered, each script first checks with `claude mcp
+get` and removes any existing registration, making a re-run (e.g. after
+moving the repo) update the registration instead of failing.
+
+The two scripts are independent implementations of the same logic, not
+a shared library, since there's no cross-platform-shell mechanism to
+share code between a `.ps1` and a `.sh` here: `install-mcp-server.ps1`
+resolves `python.exe` via `python -c "import sys; print(sys.executable)"`
+run through `py -3`; `install-mcp-server.sh` does the analogous
+`python3 -c '...'`, plus an explicit check that the resolved path is
+executable (POSIX shells don't have PowerShell's `Test-Path`-with-throw
+idiom, so this is done by hand) and a note in its `pip install` failure
+path about `--user`/virtualenvs, since Debian/Ubuntu and Homebrew Python
+installs commonly refuse an unscoped `pip install` ("externally managed
+environment").
 
 ## Why one core, two interfaces
 

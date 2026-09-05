@@ -1,0 +1,6 @@
+# Force consistent line endings regardless of a clone's core.autocrlf
+# setting. Without this, a Windows checkout can give the .sh scripts
+# CRLF line endings, which breaks their #!/usr/bin/env bash shebang line
+# on macOS/Linux ("bad interpreter: ...bash^M: no such file or directory").
+*.sh text eol=lf
+*.ps1 text eol=crlf

@@ -181,7 +181,9 @@ verifies.
   - Updated `README.md`, `spec/tech.md`, `spec/design.md`, and rewrote
     Requirement 9 in `spec/requirements.md` to describe the installer
     rather than the reverted PATH-shim approach
-  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
+  - _Requirements: 9.1-9.7 as numbered at the time (Windows-only); see
+    Task 14, which generalized and renumbered Requirement 9 to 9.1-9.8
+    for cross-platform support_
 
 - [x] **Task 12: Expand the README's MCP server section into a step-by-step walkthrough**
   - Restructured the previous few-paragraph MCP summary into numbered
@@ -218,4 +220,52 @@ verifies.
   - Updated `spec/tech.md` (packaging) and `spec/design.md`
     (registration installer) and added Requirement 10 (10.1-10.8) to
     `spec/requirements.md`
-  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8_
+  - _Requirements: 10.1-10.8 as numbered at the time (Windows-only); see
+    Task 14, which generalized Requirement 10 and added 10.9 for
+    cross-platform support_
+
+- [x] **Task 14: Add macOS/Linux install scripts and generalize the docs**
+  - Audited `core.py`/`cli.py`/`mcp_server.py` for Windows-specific
+    assumptions (none found — all path handling already went through
+    `pathlib`/`os`) so the cross-platform work was scoped entirely to
+    the two installer scripts, which were Windows/PowerShell-only
+  - Updated `mcp_server.py`'s module docstring, which had hardcoded a
+    `py -3`-specific example command, to point at both installers
+    generically instead
+  - Wrote `scripts/install-shim.sh`: writes a `claude-export` shim into
+    `~/.local/bin` invoking `cli.py` via `python3`, `chmod +x`-ing it
+    directly (no `bash.exe`-lookup dance needed, since the installer
+    itself already runs under a POSIX shell), and warning (without
+    modifying `PATH`) if `~/.local/bin` isn't already on it
+  - Wrote `scripts/install-mcp-server.sh`: resolves `python3`'s absolute
+    path via `sys.executable`, with an explicit check that it's both
+    non-empty and executable (added after reasoning that `set -e` alone
+    doesn't reliably catch a failed command substitution assigned to a
+    variable); installs `mcp` for it; checks for and removes any
+    existing `claude-session-export` registration; re-registers it;
+    prints `claude mcp get` to confirm; and, if `pip install` fails,
+    suggests `--user` or a virtualenv (PEP 668 "externally managed
+    environment" installs are common on Debian/Ubuntu and Homebrew
+    Python)
+  - Since neither macOS nor Linux was available to test on directly,
+    verified both scripts by: `bash -n` syntax-checking them; running
+    `install-shim.sh` against a scratch `$HOME` (both the "not on PATH"
+    and "already on PATH" branches) and confirming the generated shim
+    actually executes correctly through a `python3`-to-`py -3` wrapper;
+    and dry-running `install-mcp-server.sh` with a stubbed `claude` CLI
+    (covering both the fresh-registration and already-registered/remove
+    branches) to exercise the real `pip install` and control flow
+    without touching the machine's live MCP registration, then
+    confirming with `claude mcp list` that the real registration was
+    unaffected
+  - Updated `README.md` throughout (Requirements, the `claude-export`
+    install section, CLI usage, both MCP install steps, "Updating or
+    removing", Project layout) to show both platforms and to route the
+    rest of the CLI documentation through the platform-agnostic
+    `claude-export` command
+  - Generalized `spec/tech.md` (Platform, Packaging & distribution),
+    `spec/design.md` (both installer sections), and renumbered/expanded
+    Requirement 9 (9.1-9.8) and Requirement 10 (added 10.9) in
+    `spec/requirements.md` to describe both platforms instead of only
+    Windows
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7, 9.8, 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8, 10.9_

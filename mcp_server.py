@@ -1,7 +1,8 @@
 """MCP server exposing Claude Code session listing/export as tools.
 
-Run directly (stdio transport) or register with:
-    claude mcp add claude-session-export -- py -3 <path to this file>
+Run directly (stdio transport), or register it with Claude Code via
+scripts/install-mcp-server.ps1 (Windows) or scripts/install-mcp-server.sh
+(macOS/Linux) -- see README.md.
 """
 
 from __future__ import annotations

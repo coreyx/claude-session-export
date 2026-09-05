@@ -20,6 +20,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   one command. Idempotent — re-running it after moving the repo or
   reinstalling Python removes and re-adds the registration with current
   paths instead of failing.
+- `scripts/install-shim.sh` and `scripts/install-mcp-server.sh`: macOS/
+  Linux equivalents of the two installers above, using `python3` in
+  place of the `py -3` launcher. `core.py`, `cli.py`, and `mcp_server.py`
+  needed no changes — they were already platform-agnostic — so this
+  makes the whole project usable end-to-end on Windows, macOS, and
+  Linux.
 
 ### Changed
 

@@ -68,6 +68,9 @@ only exists for the MCP server.
 - No formal Python packaging yet — there is no `pyproject.toml`/
   `setup.py`, no virtual environment committed to the repo, and no
   `pip`-installed console-script entry point.
+- The installer scripts below are described in their Windows/PowerShell
+  form; see the "Platform" section for the parallel `.sh` scripts that
+  provide the same behavior on macOS/Linux.
 - `scripts/install-shim.ps1` is an optional installer, not a packaging
   mechanism: it writes `claude-export.cmd` (cmd.exe/PowerShell) and
   `claude-export` (POSIX shells, e.g. Git Bash) into `~/.local/bin` —
@@ -106,10 +109,26 @@ only exists for the MCP server.
 
 ## Platform
 
-- Developed and tested on **Windows 11 / PowerShell**. All path handling
-  goes through `pathlib`/`os.sep` rather than hardcoded `\` or `/`
-  separators, so the CLI and core logic are expected to run unmodified on
-  macOS/Linux — this has not been verified.
+- **Windows, macOS, and Linux are all supported.** `core.py`, `cli.py`,
+  and `mcp_server.py` are pure `pathlib`/`os`-based Python with no
+  platform-specific branches, and are the same code on every OS.
+- Development and testing happened on **Windows 11 / PowerShell**, with
+  the macOS/Linux path exercised through the `.sh` installer scripts
+  (see below) — the underlying Python has not been run on an actual
+  macOS/Linux machine, only reasoned about and partially simulated (a
+  wrapper interpreter standing in for `python3`) on Windows.
+- Only the two optional installer scripts differ per platform, because
+  installers are inherently about OS-specific concerns (finding the
+  right interpreter, registering a shim in a shell-specific way):
+  `scripts/install-shim.ps1` / `scripts/install-mcp-server.ps1` for
+  Windows (PowerShell), and `scripts/install-shim.sh` /
+  `scripts/install-mcp-server.sh` for macOS/Linux (POSIX shell). Each
+  pair implements the same behavior for its platform's idioms: `py -3`
+  vs. `python3` as the interpreter; `$PSScriptRoot`-based vs.
+  `BASH_SOURCE`-based self-location (used by the installer scripts to
+  find the repo root relative to themselves, not by the shims they
+  generate, which hardcode an absolute path); and a `.cmd` plus a POSIX
+  shim vs. a POSIX shim only.
 
 ## Version control
 
