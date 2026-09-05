@@ -139,6 +139,20 @@ Python exception from a tool function (an MCP tool-call error result) —
 there is no bespoke error handling in this layer, mirroring the "let
 `core.py`'s exceptions speak for themselves" approach used in the CLI.
 
+### Registration installer (`scripts/install-mcp-server.ps1`)
+
+Registering an MCP server with Claude Code (find the right `python.exe`,
+install `mcp` for it, run `claude mcp add --scope user` with both
+absolute paths) is several manual, error-prone steps — get the Python
+path wrong and `claude mcp list` just shows a silent failure. This
+script automates exactly those steps and nothing else: it does not
+touch `core.py`, `cli.py`, or `mcp_server.py`, and it treats the
+`claude` CLI as the source of truth for registration state rather than
+editing `~/.claude.json` directly. Because `claude mcp add` errors on a
+name that's already registered, the script first checks with
+`claude mcp get` and removes any existing registration, making a re-run
+(e.g. after moving the repo) update the registration instead of failing.
+
 ## Why one core, two interfaces
 
 The CLI and MCP server serve different callers with different framing

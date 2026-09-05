@@ -80,22 +80,137 @@ py -3 cli.py export --all -o exports/
 ## MCP server usage
 
 `mcp_server.py` exposes the same functionality as three MCP tools over
-stdio: `list_projects`, `list_project_sessions`, `export_session_to_file`.
+stdio, so a Claude Code session can list and export sessions (its own, or
+another project's) on your behalf instead of you running the CLI by hand:
 
-Register it with Claude Code (user scope, so it's available in every
-project):
+| Tool | Purpose |
+|---|---|
+| `list_projects` | List every project on this machine that has session transcripts |
+| `list_project_sessions` | List a project's sessions, most recent first |
+| `export_session_to_file` | Render one session to a `.txt` file and return its path |
+
+### 1. Install and register the server
+
+```powershell
+./scripts/install-mcp-server.ps1
+```
+
+This resolves the `python.exe` behind your `py -3` launcher, installs the
+`mcp` package for it, and runs `claude mcp add --scope user` pointing at
+this clone's `mcp_server.py` — the three manual steps below, done for
+you. It's safe to re-run any time (e.g. after moving the repo or
+reinstalling Python): if the server is already registered, it removes
+and re-adds it so its paths stay current. It ends by printing
+`claude mcp get claude-session-export` so you can see the result — look
+for `Status: ✔ Connected`.
+
+<details>
+<summary>Doing it by hand instead</summary>
+
+```powershell
+# 1. Install the server's dependency
+py -3 -m pip install -r requirements.txt
+
+# 2. Find the absolute path to your python.exe (registration needs an
+#    absolute path, not the `py` launcher -- see spec/tech.md for why)
+(Get-Command python).Source        # PowerShell
+which python                       # bash
+
+# 3. Register the server (user scope: available in every project)
+claude mcp add --scope user claude-session-export -- "<path from step 2>" "<absolute path to mcp_server.py>"
+```
+
+For example, on a machine where step 2 printed
+`C:\Users\me\AppData\Local\Programs\Python\Python312\python.exe` and this
+repo is cloned to `C:\Users\me\source\repos\claude-session-export`:
 
 ```
-claude mcp add --scope user claude-session-export -- "<path to python.exe>" "<path to mcp_server.py>"
+claude mcp add --scope user claude-session-export -- "C:\Users\me\AppData\Local\Programs\Python\Python312\python.exe" "C:\Users\me\source\repos\claude-session-export\mcp_server.py"
 ```
 
-Use an absolute path to `python.exe` rather than the `py` launcher — it's
-more reliable when Claude Code spawns the server as a subprocess.
+</details>
 
-Because the server runs as its own long-lived process, it has no way to
-infer which project a given tool call is "for" — callers must always pass
-`project` explicitly (their own working directory, or a slug from
-`list_projects`).
+### 2. Verify it's connected
+
+```
+claude mcp list
+```
+
+should include a line like:
+
+```
+claude-session-export: C:\...\python.exe C:\...\mcp_server.py - ✔ Connected
+```
+
+If it instead shows a failure, run `claude mcp get claude-session-export`
+for details, or re-run `./scripts/install-mcp-server.ps1` and read its
+output — whatever error it prints (e.g. from `pip install` or
+`claude mcp add`) is what Claude Code is hitting.
+
+### 3. Start a new Claude Code session
+
+A session only loads its MCP tools at startup, so a session that was
+already running before you registered the server won't see it — start a
+new one (or restart the current one).
+
+### 4. Use it
+
+Once registered, just ask in plain language and Claude will call the
+tools itself, e.g.:
+
+- "What Claude Code sessions exist for this project?"
+- "Export my last session in this repo to a text file."
+- "Export every session for `C:\Users\me\other-project` to `exports/`."
+
+Because the server is a separate long-lived process, it has no way to
+infer which project a given tool call is "for" — every call needs an
+explicit `project` (a working-directory path, or a `project_slug` from
+`list_projects`). A Claude Code session calling these tools about itself
+passes its own working directory automatically; you don't need to supply
+it yourself when asking in chat.
+
+If you want to see the raw tool calls rather than just asking in chat,
+they look like this:
+
+```
+list_project_sessions(project="C:\Users\me\my-repo")
+→ [
+    {"index": 1, "session_id": "9f1c2a...", "started_at": "2026-09-04T16:52:41Z",
+     "message_count": 63, "first_user_message": "Can you help me..."},
+    {"index": 2, "session_id": "02eb73...", "started_at": "2026-09-02T06:17:31Z",
+     "message_count": 2343, "first_user_message": "I believe there is a bug..."}
+  ]
+
+export_session_to_file(session="1", project="C:\Users\me\my-repo", output_path="C:\Users\me\my-repo\transcript.txt")
+→ {"output_path": "C:\\Users\\me\\my-repo\\transcript.txt", "size_bytes": 21694}
+```
+
+The transcript text itself is never returned inline (sessions can run to
+many megabytes) — read the file at `output_path` if you need its content.
+
+### Updating or removing the server
+
+If the repo moves, or you reinstall Python at a different path, just
+re-run `./scripts/install-mcp-server.ps1` — it removes and re-adds the
+registration with current paths. To remove it entirely instead:
+
+```
+claude mcp remove claude-session-export
+```
+
+### Troubleshooting
+
+- **Tools don't show up in a session.** MCP tools load at session start
+  — start a new session or restart the current one (step 3).
+- **`claude mcp list` shows a failure, or the install script errors.**
+  The script's output shows exactly which step failed (`pip install` or
+  `claude mcp add`) and the real error — usually a wrong/missing Python
+  install, or the `claude` CLI not being on `PATH`.
+- **A tool call fails with a `FileNotFoundError` about the project.**
+  The `project` argument didn't resolve to a real
+  `~/.claude/projects/<slug>` directory. Double check the working
+  directory you passed, or call `list_projects` first to get an exact
+  `project_slug`.
 
 ## Project layout
 
@@ -106,6 +221,8 @@ infer which project a given tool call is "for" — callers must always pass
 - `scripts/install-shim.ps1` — optional installer that writes a
   `claude-export` shim (for cmd.exe/PowerShell and POSIX shells) into
   `~/.local/bin`
+- `scripts/install-mcp-server.ps1` — installs the `mcp` dependency and
+  registers `mcp_server.py` with Claude Code
 - `spec/tech.md`, `spec/design.md`, `spec/requirements.md` — tech stack,
   architecture, and requirements documentation
 

@@ -14,12 +14,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   invoke this clone's `cli.py` via the `py -3` launcher. Reuses a bin
   directory already commonly on `PATH` instead of adding a new,
   per-tool, per-clone `PATH` entry; never modifies `PATH` itself.
+- `scripts/install-mcp-server.ps1`: installs the `mcp` package for the
+  `py -3` interpreter and registers `mcp_server.py` with Claude Code
+  (`claude mcp add --scope user`), replacing several manual steps with
+  one command. Idempotent — re-running it after moving the repo or
+  reinstalling Python removes and re-adds the registration with current
+  paths instead of failing.
 
 ### Changed
 
 - Replaced an earlier approach (a `bin/` directory inside the repo,
   added directly to the user's `PATH`) with the installer above, after
   reconsidering the per-tool `PATH` growth it implied.
+- Expanded the README's MCP server section into a numbered setup walkthrough
+  (install dependency, find the Python path, register, verify, start a
+  new session, use it) plus example tool calls/responses and a
+  troubleshooting list, replacing the previous few-paragraph summary.
 
 ## [0.1.0] - 2026-09-04
 

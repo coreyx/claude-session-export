@@ -182,3 +182,40 @@ verifies.
     Requirement 9 in `spec/requirements.md` to describe the installer
     rather than the reverted PATH-shim approach
   - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_
+
+- [x] **Task 12: Expand the README's MCP server section into a step-by-step walkthrough**
+  - Restructured the previous few-paragraph MCP summary into numbered
+    steps (install dependency, find the Python path, register, verify,
+    start a new session, use it), each with a runnable command
+  - Verified the documented registration/verification command formats
+    against the server actually registered on this machine (`claude mcp
+    list`) before writing them down
+  - Added a tool reference table, example natural-language prompts,
+    worked example tool calls/responses (`list_project_sessions`,
+    `export_session_to_file`), an "updating or removing" section, and a
+    troubleshooting list
+  - Logged the change in `CHANGE_LOG.md`
+  - _Requirements: documents 7.1-7.5; no new acceptance criteria added_
+
+- [x] **Task 13: Add `scripts/install-mcp-server.ps1` and simplify the README around it**
+  - Investigated `claude mcp add`/`get`/`remove` behavior directly
+    (confirmed `add` errors with "already exists" on a duplicate name,
+    and that `remove` without `-s` auto-detects scope) to design an
+    idempotent install flow
+  - Wrote `scripts/install-mcp-server.ps1`: resolves the `python.exe`
+    behind `py -3` via `sys.executable` (not `Get-Command python`,
+    which can resolve a different interpreter), installs `mcp` for it,
+    checks for and removes any existing `claude-session-export`
+    registration, re-registers it at user scope, and prints
+    `claude mcp get claude-session-export` to confirm
+  - Tested it end-to-end against the already-registered server (the
+    remove-then-re-add path), confirming it exits cleanly and leaves the
+    server `✔ Connected`
+  - Rewrote the README's MCP steps around running the script as the
+    primary path, moved the manual step-by-step version into a
+    collapsible `<details>` section, and renumbered/updated the
+    remaining steps and the troubleshooting list to match
+  - Updated `spec/tech.md` (packaging) and `spec/design.md`
+    (registration installer) and added Requirement 10 (10.1-10.8) to
+    `spec/requirements.md`
+  - _Requirements: 10.1, 10.2, 10.3, 10.4, 10.5, 10.6, 10.7, 10.8_

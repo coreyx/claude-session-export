@@ -88,6 +88,18 @@ only exists for the MCP server.
   stub in `System32` instead).
 - The MCP server is registered with an absolute path to `python.exe` and
   to `mcp_server.py` (see `README.md`), independent of the shims above.
+- `scripts/install-mcp-server.ps1` automates that registration: it
+  resolves the `python.exe` behind `py -3` via
+  `python -c "import sys; print(sys.executable)"` (rather than
+  `Get-Command python`, which can resolve to a different interpreter
+  than the one `py -3` would pick), installs `mcp` for it, and calls
+  `claude mcp add --scope user`. It shells out to the `claude` CLI
+  itself (`claude mcp get`/`remove`/`add`) rather than editing
+  `~/.claude.json` directly, so it stays correct across whatever
+  internal format that file uses. It is idempotent: `claude mcp add`
+  errors if a server with the same name is already registered, so the
+  script checks with `claude mcp get` first and removes any existing
+  registration before re-adding.
 - `requirements.txt` pins only `mcp>=1.0.0`; its transitive dependencies
   were already present in the target Python environment at the time this
   was built.
