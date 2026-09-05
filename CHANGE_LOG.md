@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- `scripts/install-shim.ps1`: optional installer that writes a
+  `claude-export` shim (`claude-export.cmd` for cmd.exe/PowerShell,
+  `claude-export` for POSIX shells) into `~/.local/bin`, hardcoded to
+  invoke this clone's `cli.py` via the `py -3` launcher. Reuses a bin
+  directory already commonly on `PATH` instead of adding a new,
+  per-tool, per-clone `PATH` entry; never modifies `PATH` itself.
+
+### Changed
+
+- Replaced an earlier approach (a `bin/` directory inside the repo,
+  added directly to the user's `PATH`) with the installer above, after
+  reconsidering the per-tool `PATH` growth it implied.
+
 ## [0.1.0] - 2026-09-04
 
 ### Added

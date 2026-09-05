@@ -191,3 +191,30 @@ the slug format myself.
   attempted.
 - **8.4** WHEN no `project` value is given to a CLI command THEN the
   system SHALL use the current working directory as the `project` value.
+
+## 9. Install `claude-export` as a bare command without growing PATH per tool
+
+**User story:** As a user, I want an installer that places a
+`claude-export` shim into a bin directory I already keep on `PATH`
+(`~/.local/bin`), so that adding this tool doesn't require another
+per-tool, per-clone `PATH` entry.
+
+- **9.1** WHEN the user runs `scripts/install-shim.ps1` THEN the system
+  SHALL create `~/.local/bin` if it does not already exist.
+- **9.2** WHEN `scripts/install-shim.ps1` runs THEN the system SHALL
+  write `claude-export.cmd` and `claude-export` into `~/.local/bin`,
+  each invoking `py -3 <absolute path to this clone's cli.py>` with the
+  caller's arguments forwarded unchanged.
+- **9.3** WHEN `scripts/install-shim.ps1` is re-run THEN the system SHALL
+  overwrite any existing shim files at that location rather than
+  failing.
+- **9.4** WHEN a Git for Windows `bash.exe` is found THEN the installer
+  SHALL mark the POSIX (`claude-export`) shim executable via `chmod +x`.
+- **9.5** IF no usable `bash.exe` is found THEN the installer SHALL warn
+  the user to set the executable bit manually rather than failing.
+- **9.6** IF `~/.local/bin` is not already present in the user's `PATH`
+  THEN the installer SHALL warn the user and print the exact command to
+  add it, and SHALL NOT modify `PATH` itself.
+- **9.7** THE installer SHALL NOT be required for the CLI to function:
+  `py -3 cli.py <args>` SHALL remain fully usable whether or not the
+  installer has been run.

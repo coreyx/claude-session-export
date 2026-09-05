@@ -24,10 +24,32 @@ Install dependencies with:
 py -3 -m pip install -r requirements.txt
 ```
 
+## Installing the `claude-export` command (optional)
+
+Rather than adding this repo to `PATH` directly, the installer drops a
+shim into `~/.local/bin` — a directory many dev setups (including this
+one) already keep on `PATH` — so adding this tool doesn't grow `PATH`
+with another per-tool, per-clone entry:
+
+```powershell
+./scripts/install-shim.ps1
+```
+
+This writes `claude-export.cmd` (cmd.exe/PowerShell) and `claude-export`
+(Git Bash/other POSIX shells) into `~/.local/bin`, each hardcoded to
+invoke this clone's `cli.py`. It's safe to re-run (it overwrites any
+existing shim there), and it never modifies `PATH` itself — if
+`~/.local/bin` isn't already on your `PATH`, the script prints the exact
+command to add it and stops short of running it for you. Once installed,
+every example below also works as `claude-export <subcommand> ...`
+instead of `py -3 cli.py <subcommand> ...`. This step is entirely
+optional — the CLI works via `py -3 cli.py ...` with or without it.
+
 ## CLI usage
 
-Run `cli.py` with the system Python. All commands default to the project
-for your current working directory unless `--project` is given.
+Run `cli.py` with the system Python (or `claude-export`, once installed
+per above). All commands default to the project for your current working
+directory unless `--project` is given.
 
 ```
 py -3 cli.py list-projects
@@ -81,6 +103,9 @@ infer which project a given tool call is "for" — callers must always pass
   beyond reading transcripts and writing an export file)
 - `cli.py` — argparse CLI over `core.py`
 - `mcp_server.py` — FastMCP stdio server over `core.py`
+- `scripts/install-shim.ps1` — optional installer that writes a
+  `claude-export` shim (for cmd.exe/PowerShell and POSIX shells) into
+  `~/.local/bin`
 - `spec/tech.md`, `spec/design.md`, `spec/requirements.md` — tech stack,
   architecture, and requirements documentation
 

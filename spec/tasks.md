@@ -126,8 +126,59 @@ verifies.
 
 - [x] **Task 9: Initialize version control and commit**
   - Added `.gitignore` excluding `__pycache__/` and `*.pyc`
-  - Ran `git init` in the project directory
-  - Staged all project files and created the initial commit
-    (`c121115`, "feat: initial claude-session-export tool (CLI + MCP
-    server)")
+  - Ran `git init`, staged all project files, and created the initial
+    commit (`c121115`, "feat: initial claude-session-export tool (CLI +
+    MCP server)")
+  - Wrote this task list (`spec/tasks.md`) and committed it separately
+    (`92f1270`)
+  - Found and scrubbed a local username accidentally embedded in
+    `spec/tech.md`; since history was still trivial, deleted `.git`
+    entirely and re-initialized with a single clean commit (`b76bfce`)
+    containing the corrected project instead of a fixup commit
+  - Tagged that commit `v0.1.0` (annotated)
   - _Requirements: none directly; a process/versioning task covering the artifacts from Tasks 1-8_
+
+- [x] **Task 10: Add the `claude-export` PATH shim (later superseded — see Task 11)**
+  - Created `bin/claude-export.cmd` (cmd.exe/PowerShell) and
+    `bin/claude-export` (POSIX shells), each resolving `cli.py`'s path
+    relative to the shim's own location and forwarding all arguments to
+    it via the `py -3` launcher
+  - Made `bin/claude-export` executable (`chmod +x`)
+  - Tested both shims directly (`list-projects`) before touching `PATH`
+  - Added `bin/` to the current user's `PATH` environment variable via
+    `[Environment]::SetEnvironmentVariable(..., "User")` (append, not
+    `setx`, to avoid its 1024-character truncation risk)
+  - Verified the bare `claude-export` command resolves and runs correctly
+    against a freshly-composed `PATH` (simulating a new shell)
+  - Updated `README.md` (install/usage), `CHANGE_LOG.md` (Unreleased),
+    `spec/tech.md`, and `spec/design.md` to document the shims
+  - When asked "isn't there a more elegant solution than adding every
+    tool to PATH with an absolute path like that?", agreed this approach
+    doesn't scale across tools and proposed reusing an existing shared
+    bin directory instead — see Task 11
+  - _Requirements: implemented an earlier version of Requirement 9 that
+    no longer appears in `requirements.md` as written (it was revised,
+    not just re-satisfied, by Task 11)_
+
+- [x] **Task 11: Replace the PATH shim with an installer targeting `~/.local/bin`**
+  - Removed the `bin/`-on-`PATH` entry added in Task 10 from the user
+    `PATH` environment variable
+  - Deleted the repo's `bin/` directory (superseded)
+  - Wrote `scripts/install-shim.ps1`: creates `~/.local/bin` if needed,
+    writes `claude-export.cmd` and `claude-export` there with this
+    clone's absolute `cli.py` path baked in, marks the POSIX shim
+    executable, and warns (without modifying `PATH`) if `~/.local/bin`
+    isn't already on it
+  - First run failed marking the POSIX shim executable: `Get-Command
+    bash` resolved to the WSL launcher stub in `System32`, not Git Bash,
+    which errored trying to relay into a WSL distro; fixed by checking
+    `Program Files\Git\bin\bash.exe` directly before falling back to
+    `bash` on `PATH`
+  - Re-ran the installer, confirmed the POSIX shim's executable bit was
+    set, and verified the bare `claude-export` command in both Git Bash
+    and PowerShell against the existing `~/.local/bin` `PATH` entry (no
+    `PATH` change needed, since it was already present)
+  - Updated `README.md`, `spec/tech.md`, `spec/design.md`, and rewrote
+    Requirement 9 in `spec/requirements.md` to describe the installer
+    rather than the reverted PATH-shim approach
+  - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6, 9.7_

@@ -65,11 +65,29 @@ only exists for the MCP server.
 
 ## Packaging & distribution
 
-- None yet. There is no `pyproject.toml`/`setup.py`, no virtual
-  environment committed to the repo, and no console-script entry point.
-  The CLI is invoked as `py -3 cli.py ...` from the repo directory; the
-  MCP server is registered with an absolute path to `python.exe` and to
-  `mcp_server.py` (see `README.md`).
+- No formal Python packaging yet — there is no `pyproject.toml`/
+  `setup.py`, no virtual environment committed to the repo, and no
+  `pip`-installed console-script entry point.
+- `scripts/install-shim.ps1` is an optional installer, not a packaging
+  mechanism: it writes `claude-export.cmd` (cmd.exe/PowerShell) and
+  `claude-export` (POSIX shells, e.g. Git Bash) into `~/.local/bin` —
+  chosen over adding this repo's own directory to `PATH` because
+  `~/.local/bin` is a directory many dev setups (this one included)
+  already keep on `PATH`, so installing this tool costs zero new `PATH`
+  entries rather than one per tool/clone. The tradeoff: unlike a shim
+  living inside the repo, these hardcode an absolute path to this
+  clone's `cli.py` at install time and need re-running if the repo
+  moves. Both shims invoke `cli.py` via the `py -3` launcher — used here
+  (rather than an absolute `python.exe` path, as the MCP registration
+  uses) because these run interactively from a real shell, where `py`
+  reliably resolves to the right interpreter, unlike the MCP server,
+  which Claude Code spawns directly as a subprocess. The installer marks
+  the POSIX shim executable via Git for Windows' own `bash.exe` (found
+  by checking `Program Files\Git\bin` directly rather than trusting
+  `bash` on `PATH`, which on Windows commonly resolves to a WSL launcher
+  stub in `System32` instead).
+- The MCP server is registered with an absolute path to `python.exe` and
+  to `mcp_server.py` (see `README.md`), independent of the shims above.
 - `requirements.txt` pins only `mcp>=1.0.0`; its transitive dependencies
   were already present in the target Python environment at the time this
   was built.

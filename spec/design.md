@@ -95,6 +95,25 @@ interface-specific logic is the top-level `try/except` in `main()`, which
 catches the core library's exceptions, prints `error: <message>` to
 stderr, and exits `1` — everything else is a direct call-through.
 
+## Optional installer (`scripts/install-shim.ps1`)
+
+`claude-export` is not a third interface onto `core.py` — it's a thin
+invocation wrapper around the CLI itself, so `claude-export <args>` is
+exactly `py -3 cli.py <args>` with no behavioral difference. The
+installer writes two shim files (`claude-export.cmd`,
+`claude-export`) into `~/.local/bin` rather than adding this repo's own
+directory to `PATH`, on the premise that `~/.local/bin` is a directory
+already on `PATH` in many dev setups — one shared bin directory reused by
+every tool beats one `PATH` entry per tool/clone. This means, unlike a
+shim shipped inside the repo, the installed files hardcode this clone's
+absolute `cli.py` path and must be re-run if the repo moves; the
+installer is idempotent (safe to re-run) specifically to make that cheap.
+It also never edits `PATH` itself — if `~/.local/bin` isn't already
+present, it prints the exact command for the user to run instead of
+mutating a machine-wide setting on their behalf. See `tech.md` for why
+the shims invoke `py -3` while the MCP registration instead uses an
+absolute `python.exe` path.
+
 ## MCP server (`mcp_server.py`)
 
 Uses `FastMCP` to declare three tools as thin wrappers:
