@@ -40,11 +40,19 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $serverName = 'claude-session-export'
+# Redirecting stderr from a native command while $ErrorActionPreference is
+# 'Stop' turns that output into a terminating error in PowerShell 5.1, so
+# 'claude mcp get' reporting "not found" (expected on a first install) would
+# otherwise abort the script instead of just setting a non-zero exit code.
+$previousEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 & claude mcp get $serverName *> $null
-if ($LASTEXITCODE -eq 0) {
+$alreadyRegistered = ($LASTEXITCODE -eq 0)
+if ($alreadyRegistered) {
     Write-Host "'$serverName' is already registered -- removing it so it can be re-added with current paths..."
     & claude mcp remove $serverName *> $null
 }
+$ErrorActionPreference = $previousEap
 
 Write-Host "Registering '$serverName' with Claude Code (user scope, available in every project)..."
 & claude mcp add --scope user $serverName -- "$pythonExe" "$serverPath"
